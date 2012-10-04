@@ -28,6 +28,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
+
 using Xwt.Backends;
 using Color = Xwt.Drawing.Color;
 using DrawingColor = System.Drawing.Color;
@@ -46,12 +48,35 @@ namespace Xwt.WPFBackend
 
 		public object CreateRadial (double cx0, double cy0, double radius0, double cx1, double cy1, double radius1)
 		{
-			throw new NotImplementedException ();
+			return new RadialGradient (cx0, cy0, radius0, cx1, cy1, radius1);
 		}
 
 		public void AddColorStop (object backend, double position, Color color)
 		{
 			((GradientBase)backend).ColorStops.Add (new Tuple<double, Color> (position, color));
+		}
+	}
+
+	internal class RadialGradient
+		: GradientBase
+	{
+		GraphicsPath path;
+
+		public RadialGradient (double cx0, double cy0, double radius0, double cx1, double cy1, double radius1)
+		{
+			path = new GraphicsPath ();
+			path.AddEllipse (0, 0, 400, 400);
+			//path.AddEllipse ((float) (cx0 - radius0), (float) (cy0 - radius0), (float) (radius0 * 2), (float) (radius0 * 2));
+			//path.AddEllipse ((float)(cx1 - radius1), (float)(cy1 - radius1), (float)(radius1 * 2), (float)(radius1 * 2));
+		}
+
+		public override Brush CreateBrush ()
+		{
+			var orderedStops = ColorStops.OrderBy (t => t.Item1).ToArray ();
+			var brush = new PathGradientBrush (path);
+			brush.CenterColor = DrawingColor.Red;// orderedStops.First ().Item2.ToDrawingColor ();
+			brush.SurroundColors = new[] {DrawingColor.Red };// orderedStops.Last ().Item2.ToDrawingColor () };
+			return brush;
 		}
 	}
 
@@ -64,6 +89,19 @@ namespace Xwt.WPFBackend
 			End = end;
 		}
 
+		public override System.Drawing.Brush CreateBrush ()
+		{
+			if (ColorStops.Count == 0)
+				throw new ArgumentException ();
+
+			var stops = ColorStops.OrderBy (t => t.Item1).ToArray ();
+			var first = stops[0];
+			var last = stops[stops.Length - 1];
+
+			return new System.Drawing.Drawing2D.LinearGradientBrush (Start, End, first.Item2.ToDrawingColor (),
+													last.Item2.ToDrawingColor ());
+
+		}
 		internal readonly PointF Start;
 		internal readonly PointF End;
 	}
@@ -71,5 +109,6 @@ namespace Xwt.WPFBackend
 	internal abstract class GradientBase
 	{
 		internal readonly List<Tuple<double, Color>> ColorStops = new List<Tuple<double, Color>> ();
+		public abstract Brush CreateBrush ();
 	}
 }
