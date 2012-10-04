@@ -211,8 +211,8 @@ namespace Xwt.WPFBackend
 		public void Stroke (object backend)
 		{
 			var c = (DrawingContext) backend;
-			if (c.Brush is PathGradientBrush) {
-				c.Graphics.FillEllipse (c.Brush, new RectangleF (0, 0, 100, 100));
+			if (c.Brush != null) {
+				c.Graphics.FillPath (c.Brush, c.Path);
 			} else {
 				c.Graphics.DrawPath (c.Pen, c.Path);
 			}

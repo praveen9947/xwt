@@ -61,21 +61,28 @@ namespace Xwt.WPFBackend
 		: GradientBase
 	{
 		GraphicsPath path;
-
+		double remaining;
 		public RadialGradient (double cx0, double cy0, double radius0, double cx1, double cy1, double radius1)
 		{
 			path = new GraphicsPath ();
-			path.AddEllipse (0, 0, 400, 400);
-			//path.AddEllipse ((float) (cx0 - radius0), (float) (cy0 - radius0), (float) (radius0 * 2), (float) (radius0 * 2));
-			//path.AddEllipse ((float)(cx1 - radius1), (float)(cy1 - radius1), (float)(radius1 * 2), (float)(radius1 * 2));
+			path.AddEllipse ((float) (cx1 - radius1), (float) (cy1 - radius1), (float) (radius1 * 2), (float) (radius1 * 2));
+			remaining = 1 - radius0 / radius1;
 		}
 
 		public override Brush CreateBrush ()
 		{
 			var orderedStops = ColorStops.OrderBy (t => t.Item1).ToArray ();
 			var brush = new PathGradientBrush (path);
-			brush.CenterColor = DrawingColor.Red;// orderedStops.First ().Item2.ToDrawingColor ();
-			brush.SurroundColors = new[] {DrawingColor.Red };// orderedStops.Last ().Item2.ToDrawingColor () };
+
+			var colors = orderedStops.Select (i => i.Item2.ToDrawingColor ()).ToArray ();
+			var stops = orderedStops.Select (i => (float) (i.Item1 * remaining)).ToArray ();
+
+			colors = colors.Concat (new[] { DrawingColor.Transparent, DrawingColor.Transparent }).ToArray ();
+			stops = stops.Concat (new[] { (float)remaining, 1.0f }).ToArray ();
+			brush.InterpolationColors = new ColorBlend (4) {
+				Colors = colors,
+				Positions = stops
+			};
 			return brush;
 		}
 	}
@@ -98,8 +105,9 @@ namespace Xwt.WPFBackend
 			var first = stops[0];
 			var last = stops[stops.Length - 1];
 
-			return new System.Drawing.Drawing2D.LinearGradientBrush (Start, End, first.Item2.ToDrawingColor (),
+			var brush = new System.Drawing.Drawing2D.LinearGradientBrush (Start, End, first.Item2.ToDrawingColor (),
 													last.Item2.ToDrawingColor ());
+			return brush;
 
 		}
 		internal readonly PointF Start;
